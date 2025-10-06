@@ -1,0 +1,14 @@
+# Virtual environments
+.venv/
+env/
+venv/
+
+# VS Code settings
+.vscode/
+
+# Hidden files
+.DS_Store
+
+# Project database
+archive/
+data/*
