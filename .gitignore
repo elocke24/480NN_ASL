@@ -1,5 +1,6 @@
 # Virtual environments
 .venv/
+.env/
 env/
 venv/
 
@@ -12,3 +13,4 @@ venv/
 # Project database
 archive/
 data/*
+ASL_Alphabet_Dataset/*
