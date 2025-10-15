@@ -5,14 +5,22 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from sklearn.metrics import accuracy_score
 
+from dotenv import load_dotenv
+import os
+
+# enviroment variables
+load_dotenv()
+train_path = os.getenv("train_path")
+test_path = os.getenv("test_path")
+
 
 transform = transforms.Compose([
-    transforms.Resize((32,32)),
+    transforms.Resize((128,128)),
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
-train_ds = datasets.ImageFolder(root="./data/asl_alphabet_train/asl_alphabet_train", transform=transform)
-test_ds = datasets.ImageFolder(root="./data/asl_alphabet_test/asl_alphabet_test", transform=transform)
+train_ds = datasets.ImageFolder(root=train_path, transform=transform)
+test_ds = datasets.ImageFolder(root=test_path, transform=transform)
 
 batch_size = 64
 train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
@@ -25,7 +33,7 @@ class CNN(nn.Module):
         self.relu  = nn.ReLU()
         self.pool  = nn.MaxPool2d(2, 2)                           		
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)  	
-        self.fc1   = nn.Linear(32 * 8 * 8, 26)                    		
+        self.fc1   = nn.Linear(32 * 32 * 32, 26)                    		
 
     def forward(self, x):
         x = self.relu(self.conv1(x))   
@@ -69,4 +77,4 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
 cnn_model = CNN()
 train_model(cnn_model, train_loader, test_loader)
 
-torch.save(cnn_model.state_dict(), 'asl_model.pth') # Save model
+torch.save(cnn_model, 'asl_model.pth') # Save model
