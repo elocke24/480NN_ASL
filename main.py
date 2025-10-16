@@ -3,13 +3,32 @@ from tkinter import Label, Button
 import cv2
 from PIL import Image, ImageTk
 import torch
+import torch.nn as nn
 from torchvision import transforms
 
 #------------------------------
+class CNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)   	
+        self.relu  = nn.ReLU()
+        self.pool  = nn.MaxPool2d(2, 2)                           		
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)  	
+        self.fc1   = nn.Linear(32 * 32 * 32, 26)                    		
+
+    def forward(self, x):
+        x = self.relu(self.conv1(x))   
+        x = self.pool(x)               	
+        x = self.relu(self.conv2(x))   	
+        x = self.pool(x)               	
+        x = x.view(x.size(0), -1)      	
+        x = self.fc1(x)                		
+        return x
 # model
 def run_model(img):
     # loading the model
-    model = torch.load("./asl_model.pth", weights_only=False)
+    model = CNN()
+    model.load_state_dict(torch.load("./asl_model.pth"))
     model.eval()
 
     transform = transforms.Compose([
@@ -23,9 +42,15 @@ def run_model(img):
 
     with torch.no_grad():
         outputs = model(img)
+        probs = torch.softmax(outputs, dim=1)
         _, predicted = torch.max(outputs, 1)
 
-    print("Prediction:", predicted.item())
+    letters = [chr(i + 65) for i in range(26)]  # A-Z
+    prediction = letters[predicted.item()]
+
+    print("Prediction:", prediction)
+    print("Confidence:", probs[0][predicted.item()].item())
+    print("Softmax probabilities:", probs[0].numpy())
 #-----------------------------------------
 
 # Create window

@@ -77,4 +77,4 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
 cnn_model = CNN()
 train_model(cnn_model, train_loader, test_loader)
 
-torch.save(cnn_model, 'asl_model.pth') # Save model
+torch.save(cnn_model.state_dict(), 'asl_model.pth') # Save model
