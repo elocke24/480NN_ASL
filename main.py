@@ -60,7 +60,7 @@ window.title("Camera App")
 # Open the default camera
 cap = cv2.VideoCapture(0)
 
-# Label to display the video feed
+# Label for video feed
 video_label = Label(window)
 video_label.pack()
 
@@ -82,8 +82,9 @@ def take_picture():
         run_model("./images/captured_image.jpg")
         # print("Image saved as captured_image.jpg")
 
-# Button to take picture
-Button(window, height=30, width=50, text="Take Picture", command=take_picture).pack()
+# Button on the video
+button = Button(window, text="Take Picture", height=2, width=15, command=take_picture)
+button.place(relx=0.5, rely=0.9, anchor='center')
 
 # Start video loop
 show_frame()
