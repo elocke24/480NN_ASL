@@ -76,7 +76,19 @@ def show_frame():
         label_width = video_label.winfo_width()
         label_height = video_label.winfo_height()
         if label_width > 0 and label_height > 0:
-            frame = cv2.resize(frame, (label_width, label_height))
+            frame_height, frame_width = frame.shape[:2]
+            frame_aspect = frame_width / frame_height
+            label_aspect = label_width / label_height
+
+            if label_aspect > frame_aspect:
+                new_height = label_height
+                new_width = int(new_height * frame_aspect)
+            else:
+                new_width = label_width
+                new_height = int(new_width / frame_aspect)
+
+            if new_width > 0 and new_height > 0:
+                frame = cv2.resize(frame, (new_width, new_height))
 
         # Convert to ImageTk
         img = Image.fromarray(frame)
