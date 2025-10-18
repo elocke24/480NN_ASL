@@ -137,26 +137,6 @@ def show_frame():
 
     video_label.after(10, show_frame)
 
-def resize_and_pad(image, size=200):
-    h, w = image.shape[:2]
-    scale = size / max(h, w)
-    new_w, new_h = int(w * scale), int(h * scale)
-
-    # Resize the image with preserved aspect ratio
-    resized = cv2.resize(image, (new_w, new_h))
-
-    # Create a black square background
-    padded = np.zeros((size, size, 3), dtype=np.uint8)
-
-    # Compute top-left corner to center the resized image
-    top = (size - new_h) // 2
-    left = (size - new_w) // 2
-
-    # Place the resized image onto the black square
-    padded[top:top+new_h, left:left+new_w] = resized
-
-    return padded
-
 def take_picture():
     ret, frame = cap.read()
     if ret:
@@ -165,11 +145,8 @@ def take_picture():
         # Detect and crop hand using MediaPipe
         cropped_hand = crop_hand(frame)
 
-        # Resize for model input
-        cropped_hand_resized = resize_and_pad(cropped_hand, size=200)
-
         image_path = "./images/captured_image.jpg"
-        cv2.imwrite(image_path, cropped_hand_resized)
+        cv2.imwrite(image_path, cropped_hand)
 
         print("Image saved as captured_image.jpg")
 
