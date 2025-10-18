@@ -44,6 +44,7 @@ def run_model(img):
 
     img = Image.open(img).convert("RGB")
     img = transform(img).unsqueeze(0)
+    img = img.to(device)
 
     with torch.no_grad():
         outputs = model(img)
@@ -55,7 +56,7 @@ def run_model(img):
 
     print("Prediction:", prediction)
     print("Confidence:", probs[0][predicted.item()].item())
-    print("Softmax probabilities:", probs[0].numpy())
+    print("Softmax probabilities:", probs[0].cpu().numpy())
 #-----------------------------------------
 
 # MediaPipe setup
