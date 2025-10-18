@@ -5,6 +5,8 @@ from PIL import Image, ImageTk
 import torch
 import torch.nn as nn
 from torchvision import transforms
+import mediapipe as mp
+import numpy as np
 import os
 
 #------------------------------
@@ -27,9 +29,11 @@ class CNN(nn.Module):
         return x
 # model
 def run_model(img):
-    # loading the model
-    model = CNN()
-    model.load_state_dict(torch.load("./asl_model.pth"))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = CNN().to(device)
+
+    # Load model safely for CPU or GPU
+    model.load_state_dict(torch.load("./asl_model.pth", map_location=device))
     model.eval()
 
     transform = transforms.Compose([
@@ -53,6 +57,41 @@ def run_model(img):
     print("Confidence:", probs[0][predicted.item()].item())
     print("Softmax probabilities:", probs[0].numpy())
 #-----------------------------------------
+
+# MediaPipe setup
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+hands_detector = mp_hands.Hands(static_image_mode=True, max_num_hands=1)
+
+def crop_hand(image):
+    # Detects a hand and returns a cropped image around it.
+    h, w, _ = image.shape
+    results = hands_detector.process(cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+
+    if results.multi_hand_landmarks:
+        # Take first detected hand
+        hand_landmarks = results.multi_hand_landmarks[0]
+        x_coords = [lm.x for lm in hand_landmarks.landmark]
+        y_coords = [lm.y for lm in hand_landmarks.landmark]
+
+        # Convert normalized coords to pixel space
+        x_min = int(min(x_coords) * w)
+        x_max = int(max(x_coords) * w)
+        y_min = int(min(y_coords) * h)
+        y_max = int(max(y_coords) * h)
+
+        # Add a little padding
+        pad = int(0.3 * max(x_max - x_min, y_max - y_min))
+        x_min = max(0, x_min - pad)
+        y_min = max(0, y_min - pad)
+        x_max = min(w, x_max + pad)
+        y_max = min(h, y_max + pad)
+
+        cropped = image[y_min:y_max, x_min:x_max]
+        return cropped
+    else:
+        print("No hand detected, using full frame.")
+        return image
 
 # Create window
 window = tk.Tk()
@@ -98,14 +137,44 @@ def show_frame():
 
     video_label.after(10, show_frame)
 
+def resize_and_pad(image, size=200):
+    h, w = image.shape[:2]
+    scale = size / max(h, w)
+    new_w, new_h = int(w * scale), int(h * scale)
+
+    # Resize the image with preserved aspect ratio
+    resized = cv2.resize(image, (new_w, new_h))
+
+    # Create a black square background
+    padded = np.zeros((size, size, 3), dtype=np.uint8)
+
+    # Compute top-left corner to center the resized image
+    top = (size - new_h) // 2
+    left = (size - new_w) // 2
+
+    # Place the resized image onto the black square
+    padded[top:top+new_h, left:left+new_w] = resized
+
+    return padded
+
 def take_picture():
     ret, frame = cap.read()
     if ret:
-        os.makedirs("./images", exist_ok=True)  # <-- ensures folder exists
+        os.makedirs("./images", exist_ok=True)  # ensures folder exists
+
+        # Detect and crop hand using MediaPipe
+        cropped_hand = crop_hand(frame)
+
+        # Resize for model input
+        cropped_hand_resized = resize_and_pad(cropped_hand, size=200)
+
         image_path = "./images/captured_image.jpg"
-        cv2.imwrite(image_path, frame)
+        cv2.imwrite(image_path, cropped_hand_resized)
+
+        print("Image saved as captured_image.jpg")
+
+        # Run the model on the cropped image
         run_model("./images/captured_image.jpg")
-        # print("Image saved as captured_image.jpg")
 
 # Button on the video
 button = Button(window, text="Take Picture", height=2, width=15, command=take_picture)
