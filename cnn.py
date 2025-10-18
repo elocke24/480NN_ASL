@@ -4,6 +4,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from sklearn.metrics import accuracy_score
+from tqdm import tqdm
 
 from dotenv import load_dotenv
 import os
@@ -56,7 +57,11 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
 
     for epoch in range(num_epochs):
         model.train()
-        for images, labels in train_loader:
+        running_loss = 0.0
+
+        # progress bar for each epoch
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False)
+        for images, labels in progress_bar:
             # Move data to GPU
             images, labels = images.to(device), labels.to(device)
 
@@ -66,7 +71,14 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
+
+            running_loss += loss.item()
+            avg_loss = running_loss / (len(progress_bar))
+
+            # dynamically update loss in progress bar
+            progress_bar.set_postfix(loss=f"{avg_loss:.4f}")
+
+        print(f"Epoch [{epoch+1}/{num_epochs}] - Loss: {avg_loss:.4f}")
 
          # Within the same def train_model function
 
@@ -76,7 +88,7 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
         for images, labels in test_loader:
             # Move data to GPU
             images, labels = images.to(device), labels.to(device)
-            
+
             outputs = model(images)
             _, predicted = torch.max(outputs, dim=1)
             all_preds.extend(predicted.cpu().tolist())  # move back to CPU for metrics
