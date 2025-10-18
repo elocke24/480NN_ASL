@@ -13,6 +13,9 @@ load_dotenv()
 train_path = os.getenv("train_path")
 test_path = os.getenv("test_path")
 
+# Use GPU if available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 transform = transforms.Compose([
     transforms.Resize((128,128)),
@@ -49,9 +52,14 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
+    model.to(device)
+
     for epoch in range(num_epochs):
         model.train()
         for images, labels in train_loader:
+            # Move data to GPU
+            images, labels = images.to(device), labels.to(device)
+            
             outputs = model(images)
             loss = criterion(outputs, labels)
 
@@ -68,8 +76,8 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
         for images, labels in test_loader:
             outputs = model(images)
             _, predicted = torch.max(outputs, dim=1)
-            all_preds.extend(predicted.tolist())
-            all_labels.extend(labels.tolist())
+            all_preds.extend(predicted.cpu().tolist())  # move back to CPU for metrics
+            all_labels.extend(labels.cpu().tolist())
 
     acc = accuracy_score(all_labels, all_preds)
     print(f"Test Accuracy: {acc * 100:.2f}%")
@@ -78,3 +86,4 @@ cnn_model = CNN()
 train_model(cnn_model, train_loader, test_loader)
 
 torch.save(cnn_model.state_dict(), 'asl_model.pth') # Save model
+print("Model saved as asl_model.pth")
