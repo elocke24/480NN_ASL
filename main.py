@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import torch
 import torch.nn as nn
 from torchvision import transforms
+import os
 
 #------------------------------
 class CNN(nn.Module):
@@ -56,29 +57,41 @@ def run_model(img):
 # Create window
 window = tk.Tk()
 window.title("Camera App")
+window.geometry("800x600")  # starting size
 
 # Open the default camera
 cap = cv2.VideoCapture(0)
 
 # Label for video feed
 video_label = Label(window)
-video_label.pack()
+video_label.pack(fill="both", expand=True)  # allow it to resize with the window
 
 def show_frame():
     ret, frame = cap.read()
     if ret:
         # Convert BGR (OpenCV) to RGB (Pillow)
-        cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        img = Image.fromarray(cv2image)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Resize dynamically to current label size
+        label_width = video_label.winfo_width()
+        label_height = video_label.winfo_height()
+        if label_width > 0 and label_height > 0:
+            frame = cv2.resize(frame, (label_width, label_height))
+
+        # Convert to ImageTk
+        img = Image.fromarray(frame)
         imgtk = ImageTk.PhotoImage(image=img)
         video_label.imgtk = imgtk
         video_label.configure(image=imgtk)
+
     video_label.after(10, show_frame)
 
 def take_picture():
     ret, frame = cap.read()
     if ret:
-        cv2.imwrite("./images/captured_image.jpg", frame)
+        os.makedirs("./images", exist_ok=True)  # <-- ensures folder exists
+        image_path = "./images/captured_image.jpg"
+        cv2.imwrite(image_path, frame)
         run_model("./images/captured_image.jpg")
         # print("Image saved as captured_image.jpg")
 
