@@ -59,7 +59,7 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
         for images, labels in train_loader:
             # Move data to GPU
             images, labels = images.to(device), labels.to(device)
-            
+
             outputs = model(images)
             loss = criterion(outputs, labels)
 
@@ -74,6 +74,9 @@ def train_model(model, train_loader, test_loader, num_epochs=5, lr=1e-3):
     all_preds, all_labels = [], []
     with torch.no_grad():
         for images, labels in test_loader:
+            # Move data to GPU
+            images, labels = images.to(device), labels.to(device)
+            
             outputs = model(images)
             _, predicted = torch.max(outputs, dim=1)
             all_preds.extend(predicted.cpu().tolist())  # move back to CPU for metrics
