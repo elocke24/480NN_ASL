@@ -8,6 +8,9 @@ venv/
 # VS Code settings
 .vscode/
 
+# PyCharm
+.idea/
+
 # Hidden files
 .DS_Store
 
