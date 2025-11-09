@@ -30,7 +30,7 @@ from torch.utils.data import Dataset, DataLoader
 load_dotenv() # reads .env file in current directory
 TRAINING_PATH = os.getenv("training_path")
 TEST_PATH = os.getenv("test_path")
-MODEL_SAVE_PATH = os.getenv("model_path")
+MODEL_SAVE_PATH = os.getenv("model_path", "asl_mlp_model.pt")
 
 # Model hyperparameters
 BATCH_SIZE = 64
