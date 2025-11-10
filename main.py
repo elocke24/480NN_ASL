@@ -1,11 +1,13 @@
-from train_asl_model import MLPClassifier
+from train_asl_model import MLPClassifier, MODEL_SAVE_PATH
 import torch
+
 
 def main():
     # Basic structure to just test the model below
 
     # Load model in from the directory in the .env file
-    model = torch.load()
+    model = MLPClassifier()
+    model.load_state_dict(torch.load(MODEL_SAVE_PATH))
 
     # Load up UI:
     #   - Camera
