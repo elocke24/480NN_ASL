@@ -11,6 +11,9 @@ venv/
 # PyCharm
 .idea/
 
+# Python
+__pycache__/
+
 # Hidden files
 .DS_Store
 
