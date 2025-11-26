@@ -87,5 +87,7 @@ if __name__ == "__main__":
     # move next
     print(f"Next Target: {session.GetNextChar()}")
 
+    print(f"Shuffling and printing next random:")
     session.ShuffleList()
     print(f"Next Target: {session.GetNextChar()}")
+    print(session.get_progress())
