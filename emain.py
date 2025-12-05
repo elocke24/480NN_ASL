@@ -13,9 +13,24 @@ from dotenv import load_dotenv
 # ---------------------------
 import random
 
+
+def normalize_landmarks(landmarks):
+    landmarks = np.array(landmarks).reshape(-1, 3)
+
+    # center based on wrist
+    wrist = landmarks[0]
+    landmarks -= wrist
+
+    # scale normalization
+    max_value = np.max(np.abs(landmarks))
+    if max_value > 0:
+        landmarks /= max_value
+
+    return landmarks.flatten()
+
 class ASLLearning:
     def __init__(self):
-        self.charList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M',
+        self.charList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N',
                          'O', 'P', 'Q', 'R', 'S', 'T', 'U','V', 'W', 'X', 'Y']
         self.currentList = self.charList
         self.currentIndex = 0
@@ -141,6 +156,7 @@ def extract_landmarks(image_path):
 # ---------------------------
 def run_model(img_path):
     landmarks = extract_landmarks(img_path)
+    landmarks = normalize_landmarks(landmarks)
     x = torch.tensor(landmarks, dtype=torch.float32).unsqueeze(0).to(DEVICE)
 
     with torch.no_grad():

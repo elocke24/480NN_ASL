@@ -24,7 +24,7 @@ import mediapipe as mp
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 
 # Environment variables
 load_dotenv() # reads .env file in current directory
@@ -48,6 +48,21 @@ FEATURE_SIZE = NUM_LANDMARKS * 3  # (x, y, z) per landmark
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
+
+
+def normalize_landmarks(landmarks):
+    landmarks = np.array(landmarks).reshape(-1, 3)
+
+    # center based on wrist
+    wrist = landmarks[0]
+    landmarks -= wrist
+
+    # scale normalization
+    max_value = np.max(np.abs(landmarks))
+    if max_value > 0:
+        landmarks /= max_value
+
+    return landmarks.flatten()
 
 # Dataset definition
 class ASLDataset(Dataset):
@@ -102,7 +117,7 @@ class ASLDataset(Dataset):
         for lm in hand_landmarks.landmark:
             landmarks.extend([lm.x, lm.y, lm.z])
 
-        return np.array(landmarks, dtype=np.float32)
+        return normalize_landmarks(landmarks)
     
     def __len__(self):
         return len(self.samples)
@@ -170,14 +185,17 @@ def main():
     # This allows for more or less characters to added dynamically
     label_names = sorted(os.listdir(TRAINING_PATH))
     label_map = {name: idx for idx, name in enumerate(label_names)}
-    
+
     print(f"Detected {len(label_map)} labels: {list(label_map.keys())}")
 
     # Populate the datamap, computing each picture and set to a letter
     # Each label in the map should have the LANDMARK DATA in each of its
     # entires, NOT the image!
-    train_dataset = ASLDataset(TRAINING_PATH, label_map)
-    test_dataset = ASLDataset(TEST_PATH, label_map)
+    full_dataset = ASLDataset(TRAINING_PATH, label_map)
+    total_count = len(full_dataset)
+    train_count = int(0.8 * total_count)
+    test_count = total_count - train_count
+    train_dataset, test_dataset = random_split(full_dataset, [train_count, test_count])
 
     # For Mac users: make sure you delete the .DS_Store files in your dataset
     # otherwise this will output one more directory than expected
@@ -189,7 +207,7 @@ def main():
     # Instantiate the model and load the data into it
     # First, load the data
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     # Setup the model
     model = MLPClassifier(FEATURE_SIZE, len(label_map)).to(DEVICE)
