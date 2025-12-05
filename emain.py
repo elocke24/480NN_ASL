@@ -161,10 +161,6 @@ window.geometry("800x600")
 
 cap = cv2.VideoCapture(0)
 
-video_label = Label(window)
-video_label.pack(fill="both", expand=True)
-
-
 # ---------------------------
 # BOTTOM BAR (CENTERED)
 # ---------------------------
@@ -182,6 +178,10 @@ button.pack(side="left", padx=40)
 
 progress_label = Label(inner, text=f"Progress: {session.get_progress()}", font=("Arial", 16))
 progress_label.pack(side="left", padx=40)
+
+# define after so its not drawn over
+video_label = Label(window)
+video_label.pack(fill="both", expand=True)
 
 # ---------------------------
 # Video Loop
