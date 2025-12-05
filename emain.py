@@ -251,6 +251,8 @@ def take_picture():
 
         try:
             prediction = run_model(image_path)
+            # print model prediction
+            print(f"[DEBUG] Raw Prediction: {prediction}")
             result = session.CheckPred(prediction)
             flash_background(result)
             session.SetNextChar()

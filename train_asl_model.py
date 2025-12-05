@@ -25,6 +25,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, random_split
+import random
 
 # Environment variables
 load_dotenv() # reads .env file in current directory
@@ -64,32 +65,43 @@ def normalize_landmarks(landmarks):
 
     return landmarks.flatten()
 
+
+def augment_landmarks(landmarks):
+    data = landmarks.reshape(-1, 3)
+
+    # random rotation
+    theta = np.radians(np.random.uniform(-10, 10))
+    c, s = np.cos(theta), np.sin(theta)
+    rotation_matrix = np.array(((c, -s, 0), (s, c, 0), (0, 0, 1)))
+    data = np.dot(data, rotation_matrix)
+
+    # small random noise
+    noise = np.random.normal(0, 0.02, data.shape)
+    data += noise
+
+    return data.flatten().astype(np.float32)
+
 # Dataset definition
 class ASLDataset(Dataset):
-    def __init__(self, root_dir, label_map):
+    # accepts a list of file_paths instead of finding them itself
+    def __init__(self, image_paths, label_map, augment=False):
         self.samples = []
         self.labels = []
         self.label_map = label_map
+        self.augment = augment
         self.hands = mp_hands.Hands(static_image_mode=True, max_num_hands=1)
 
-        # Gather all image paths first so we know total count
-        # Limitation for this is that currently the images MUST be .jpg files!
-        # Just keep this in mind if the script isn't working for you
-        self.image_paths = []
-        for label_name in label_map.keys():
-            self.image_paths.extend(glob.glob(os.path.join(root_dir, label_name, "*.jpg")))
+        total_images = len(image_paths)
+        print(f"[INFO] Processing {total_images} images (Augment={augment})...")
 
-        total_images = len(self.image_paths)
-        print(f"[INFO] Found {total_images} images to process.\n")
-        
-        # Process images with progress bar
-        for idx, img_path in enumerate(self.image_paths, start=1):
+        for idx, img_path in enumerate(image_paths, start=1):
             landmarks = self._extract_landmarks(img_path)
-
             if landmarks is not None:
+                # get label from folder name (folder name is letter name if this changes we're cooked)
                 label_name = os.path.basename(os.path.dirname(img_path))
-                self.samples.append(landmarks)
-                self.labels.append(label_map[label_name])
+                if label_name in label_map:
+                    self.samples.append(landmarks)
+                    self.labels.append(label_map[label_name])
 
             # Makeshift loading bar (updates in place)
             bar_length = 30  # length of the visual bar
@@ -100,7 +112,7 @@ class ASLDataset(Dataset):
             sys.stdout.flush()
 
         print("\n[INFO] Landmark extraction complete.\n")
-    
+        print(f"\n[INFO] Complete. Valid samples: {len(self.samples)}")
     def _extract_landmarks(self, img_path):
         # Read the image
         image = cv2.imread(img_path)
@@ -118,12 +130,16 @@ class ASLDataset(Dataset):
             landmarks.extend([lm.x, lm.y, lm.z])
 
         return normalize_landmarks(landmarks)
-    
+
     def __len__(self):
         return len(self.samples)
-    
     def __getitem__(self, idx):
-        x = torch.tensor(self.samples[idx], dtype=torch.float32)
+        # grab the clean normalized landmarks
+        landmarks = self.samples[idx]
+        if self.augment:
+            landmarks = augment_landmarks(landmarks)
+
+        x = torch.tensor(landmarks, dtype=torch.float32)
         y = torch.tensor(self.labels[idx], dtype=torch.long)
         return x, y
     
@@ -174,38 +190,52 @@ def evaluate(model, loader):
 
 # Main function breakdown
 def main():
-    if TRAINING_PATH is None or TEST_PATH is None:
+    if TRAINING_PATH is None:
         raise RuntimeError("Please set training_path and test_path in your .env file")
-    
-    print(f"Device: {DEVICE}")
-    print(f"Loading training data from: {TRAINING_PATH}")
-    print(f"Loading test data from: {TEST_PATH}")
-
-    # Build the label map from training directory
-    # This allows for more or less characters to added dynamically
     label_names = sorted(os.listdir(TRAINING_PATH))
     label_map = {name: idx for idx, name in enumerate(label_names)}
-
-    print(f"Detected {len(label_map)} labels: {list(label_map.keys())}")
-
-    # Populate the datamap, computing each picture and set to a letter
-    # Each label in the map should have the LANDMARK DATA in each of its
-    # entires, NOT the image!
-    full_dataset = ASLDataset(TRAINING_PATH, label_map)
-    total_count = len(full_dataset)
-    train_count = int(0.8 * total_count)
-    test_count = total_count - train_count
-    train_dataset, test_dataset = random_split(full_dataset, [train_count, test_count])
+    print(f"Labels: {list(label_map.keys())}")
 
     # For Mac users: make sure you delete the .DS_Store files in your dataset
     # otherwise this will output one more directory than expected
     # One way to do this is to cd into the directory where the labels directories
     # are, and run the terminal command: "find . -name ".DS_Store" -type f -delete"
-    print(f"Training samples: {len(train_dataset)}")
-    print(f"Test samples: {len(test_dataset)}")
 
-    # Instantiate the model and load the data into it
-    # First, load the data
+    # gather all the files
+    train_paths = []
+    test_paths = []
+
+    print("Stratifying dataset...")
+
+    for label in label_names:
+        folder_path = os.path.join(TRAINING_PATH, label)
+        # get all jpgs
+        files = glob.glob(os.path.join(folder_path, "*.jpg"))
+        random.shuffle(files)
+
+        # split
+        split_idx = int(0.8 * len(files))
+        train_paths.extend(files[:split_idx])
+        test_paths.extend(files[split_idx:])
+
+    # snuffle
+    random.shuffle(train_paths)
+    random.shuffle(test_paths)
+
+    # make datasets
+    print(f"Total Training: {len(train_paths)}")
+    print(f"Total Testing: {len(test_paths)}")
+
+    # Populate the datamap, computing each picture and set to a letter
+    # Each label in the map should have the LANDMARK DATA in each of its
+    # entries, NOT the image!
+    print("--- Loading Training Data ---")
+    train_dataset = ASLDataset(train_paths, label_map, augment=True)
+
+    print("--- Loading Test Data ---")
+    test_dataset = ASLDataset(test_paths, label_map, augment=False)
+
+    # 5. Loaders
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
@@ -222,11 +252,7 @@ def main():
 
 
     # Save the model
-    torch.save({
-        "model_state_dict": model.state_dict(),
-        "label_map": label_map
-    }, MODEL_SAVE_PATH)
-    print(f"Model saved to {MODEL_SAVE_PATH}")
+    torch.save({"model_state_dict": model.state_dict(), "label_map": label_map}, MODEL_SAVE_PATH)
     print("Done.")
 
 
