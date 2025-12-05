@@ -219,6 +219,13 @@ def show_frame():
 # ---------------------------
 # Capture + Predict
 # ---------------------------
+def flash_background(is_correct):
+    color = "green" if is_correct else "red"
+    window.config(bg=color)
+
+    # Restore default after 2 seconds
+    window.after(2000, lambda: window.config(bg="SystemButtonFace"))
+
 def take_picture():
     ret, frame = cap.read()
     if ret:
@@ -228,7 +235,8 @@ def take_picture():
 
         try:
             prediction = run_model(image_path)
-            session.CheckPred(prediction)
+            result = session.CheckPred(prediction)
+            flash_background(result)
             session.SetNextChar()
 
             target_label.config(text=f"Target: {session.GetCurrentChar()}")
