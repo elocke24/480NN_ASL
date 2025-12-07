@@ -186,6 +186,68 @@ def run_model(img_path):
 # ---------------------------
 # GUI
 # ---------------------------
+def show_hint():
+    target_char = session.GetCurrentChar()
+    if target_char == "Done":
+        return
+
+    # get path to hints, hints folder should be in same directory as script path
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    folder_path = os.path.join(base_dir, "Hints", target_char)
+
+    # Debug checks
+    if not os.path.exists(folder_path):
+        print(f"[ERROR] Hint folder missing: {folder_path}")
+        return
+
+    # get .jpgs
+    extensions = ["*.jpg", "*.JPG", "*.jpeg", "*.png"]
+    all_images = []
+    for ext in extensions:
+        all_images.extend(glob.glob(os.path.join(folder_path, ext)))
+
+    if not all_images:
+        print(f"[ERROR] No hint images found in {folder_path}")
+        return
+
+    # pick 3 random images (theres only 4 per file)
+    count = min(len(all_images), 3)
+    selected_images = random.sample(all_images, count)
+
+    # create popup
+    hint_window = tk.Toplevel(window)
+    hint_window.title(f"Hints for '{target_char}'")
+    hint_window.geometry("550x550")
+    hint_window.photos = []
+
+    positions = [(0, 0), (0, 1), (1, 0)]
+
+    for idx, img_path in enumerate(selected_images):
+        row, col = positions[idx]
+        try:
+            img = Image.open(img_path)
+            img = img.resize((250, 250))
+            photo = ImageTk.PhotoImage(img)
+            hint_window.photos.append(photo)
+
+            lbl = Label(hint_window, image=photo, borderwidth=2, relief="solid")
+            lbl.grid(row=row, column=col, padx=10, pady=10)
+        except Exception as e:
+            print(f"Error loading image: {e}")
+
+    # 5. Add Perspective Note
+    note_text = (
+        "IMPORTANT:\n\n"
+        "The camera should see\n"
+        "what is shown\n"
+        "in the pictures.\n\n"
+        "Try using your right\n"
+        "hand to match it"
+    )
+    note_label = Label(hint_window, text=note_text, font=("Arial", 14, "bold"), fg="#d9534f", justify="center")
+    note_label.grid(row=1, column=1, padx=10, pady=10)
+
+
 window = tk.Tk()
 window.title("ASL Camera App")
 window.geometry("800x600")
@@ -241,6 +303,9 @@ inner.pack(expand=True)   # <--- THIS centers the whole bar
 
 target_label = Label(inner, text=f"Target: {session.GetCurrentChar()}", font=("Arial", 16))
 target_label.pack(side="left", padx=40)
+
+hint_btn = Button(inner, text="Get Hint", height=2, width=10, bg="#f0ad4e", command=show_hint)
+hint_btn.pack(side="left", padx=10)
 
 button = Button(inner, text="Take Picture", height=2, width=15, command=lambda: take_picture())
 button.pack(side="left", padx=40)
