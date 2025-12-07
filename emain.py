@@ -1,4 +1,5 @@
 import tkinter as tk
+from pdb import Restart
 from tkinter import Label, Button
 import cv2
 from PIL import Image, ImageTk
@@ -7,6 +8,7 @@ import numpy as np
 import mediapipe as mp
 import os
 from dotenv import load_dotenv
+import glob
 
 # ---------------------------
 # ASLLearning class
@@ -31,55 +33,68 @@ def normalize_landmarks(landmarks):
 class ASLLearning:
     def __init__(self):
         self.charList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N',
-                         'O', 'P', 'Q', 'R', 'S', 'T', 'U','V', 'W', 'X', 'Y']
+                         'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
+        random.shuffle(self.charList)
+
         self.currentList = self.charList
         self.currentIndex = 0
-        self.correct = []
         self.incorrect = []
-
-    def ShuffleList(self):
-        random.shuffle(self.currentList)
-
-    def ResetList(self):
-        random.shuffle(self.currentList)
-        self.currentIndex = 0
+        self.retry_mode = False # track if were retrying
+        # dont need to store correct
 
     def GetCurrentChar(self):
+        # done when empty
+        if not self.currentList:
+            return "Done"
         if self.currentIndex < len(self.currentList):
             return self.currentList[self.currentIndex]
-        return None
-
-    def SetNextChar(self):
-        self.currentIndex += 1
-
-    def GetNextChar(self):
-        if self.currentIndex + 1 < len(self.currentList):
-            return self.currentList[self.currentIndex + 1]
-        return None
+        return "Done"
 
     def CheckPred(self, predChar):
         target = self.GetCurrentChar()
-        if target is None:
+        if target == "Done":
             return False
 
         predCharFormatted = str(predChar).upper()
         matching = (predCharFormatted == target)
 
-        if matching:
-            self.correct.append(target)
-        else:
-            self.incorrect.append(target)
+        if not matching:
+            # add to incorrect list if not in retry mode, keep it if we are
+            if target not in self.incorrect:
+                self.incorrect.append(target)
 
         return matching
 
-    def clear_incorrect_list(self):
-        self.incorrect = []
+    def SetNextChar(self):
+        self.currentIndex += 1
+        if self.currentIndex >= len(self.currentList):
+            self.StartRetry()
 
-    def clear_correct_list(self):
-        self.correct = []
+    def StartRetry(self):
+        if self.incorrect:
+            print(f"[INFO] Main list done. Retrying {len(self.incorrect)} mistakes...")
+            self.currentList = self.incorrect
+            self.incorrect = []
+            self.currentIndex = 0
+            self.retry_mode = True
+            random.shuffle(self.currentList) # shuffle mistakes
+        else:
+            self.currentList = []
+            self.currentIndex = 0
+
+    def Restart(self):
+        print("[INFO] Restarting entire session...")
+        self.currentList = self.charList
+        random.shuffle(self.currentList)
+        self.currentIndex = 0
+        self.incorrect = []
+        self.retry_mode = False
 
     def get_progress(self):
-        return f"{self.currentIndex + 1}/{len(self.currentList)}"
+        if not self.currentList:
+            return "Complete!"
+        mode = "Retry" if self.retry_mode else "Test"
+        return f"{self.currentIndex + 1}/{len(self.currentList)} ({mode})"
 
 
 # Create ASL session
@@ -280,7 +295,16 @@ def flash_background(is_correct):
     # Restore default after 2 seconds
     window.after(2000, lambda: window.config(bg="SystemButtonFace"))
 
+
 def take_picture():
+    if session.GetCurrentChar() == "Done":
+        session.Restart()
+        target_label.config(text=f"Target: {session.GetCurrentChar()}")
+        progress_label.config(text=f"Progress: {session.get_progress()}")
+        button.config(text="Take Picture")
+        window.config(bg="SystemButtonFace")
+        return
+
     ret, frame = cap.read()
     if ret:
         os.makedirs("./images", exist_ok=True)
@@ -295,8 +319,14 @@ def take_picture():
             flash_background(result)
             session.SetNextChar()
 
-            target_label.config(text=f"Target: {session.GetCurrentChar()}")
-            progress_label.config(text=f"Progress: {session.get_progress()}")
+            next_char = session.GetCurrentChar()
+            if next_char == "Done":
+                target_label.config(text="Session Complete!")
+                progress_label.config(text="Click to Restart")
+                button.config(text="Restart")
+            else:
+                target_label.config(text=f"Target: {next_char}")
+                progress_label.config(text=f"Progress: {session.get_progress()}")
 
         except Exception as e:
             print("Error:", e)
