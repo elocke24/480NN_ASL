@@ -186,7 +186,12 @@ def run_model(img_path):
 # ---------------------------
 # GUI
 # ---------------------------
+
+# global var for the hint window to close it later in script
+active_hint_window = None
+
 def show_hint():
+    global active_hint_window
     target_char = session.GetCurrentChar()
     if target_char == "Done":
         return
@@ -220,6 +225,7 @@ def show_hint():
     hint_window.geometry("550x550")
     hint_window.photos = []
 
+    active_hint_window = hint_window
     positions = [(0, 0), (0, 1), (1, 0)]
 
     for idx, img_path in enumerate(selected_images):
@@ -235,7 +241,7 @@ def show_hint():
         except Exception as e:
             print(f"Error loading image: {e}")
 
-    # 5. Add Perspective Note
+    # match image text
     note_text = (
         "IMPORTANT:\n\n"
         "The camera should see\n"
@@ -362,6 +368,16 @@ def flash_background(is_correct):
 
 
 def take_picture():
+    global active_hint_window
+
+    # close open hint window
+    if active_hint_window is not None:
+        try:
+            active_hint_window.destroy()
+        except:
+            pass
+        active_hint_window = None
+
     if session.GetCurrentChar() == "Done":
         session.Restart()
         target_label.config(text=f"Target: {session.GetCurrentChar()}")
@@ -396,6 +412,9 @@ def take_picture():
         except Exception as e:
             print("Error:", e)
 
+
+# spacebar can be used to take picture too on windows
+window.bind('<space>', lambda event: take_picture())
 
 show_frame()
 window.mainloop()
