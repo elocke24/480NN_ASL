@@ -260,18 +260,32 @@ window.geometry("800x600")
 
 # select camera
 def select_camera():
-    # scan ports (max 3 who has more than 3)
     available_ports = []
+
     for i in range(3):
-        temp_cap = cv2.VideoCapture(i)
-        if temp_cap.isOpened():
+        try:
+            temp_cap = cv2.VideoCapture(i, cv2.CAP_ANY)
+
+            # if the object failed to create or can't open → skip
+            if not temp_cap or not temp_cap.isOpened():
+                continue
+
             available_ports.append(i)
             temp_cap.release()
+
+        except Exception:
+            # ANY failure → treat it as invalid
+            return 0
+
+    # no cameras found
     if not available_ports:
         return 0
+
+    # only one was found
     if len(available_ports) == 1:
         return available_ports[0]
 
+    # multiple cameras → show dialog
     selected_var = tk.IntVar(value=available_ports[0])
 
     dialog = tk.Toplevel(window)
@@ -282,15 +296,14 @@ def select_camera():
     Label(dialog, text="Multiple cameras found.\nPlease select one:", font=("Arial", 12)).pack(pady=15)
 
     for port in available_ports:
-        tk.Radiobutton(dialog, text=f"Camera {port}", variable=selected_var, value=port, font=("Arial", 11)).pack(
-            anchor="w", padx=80)
+        tk.Radiobutton(dialog, text=f"Camera {port}", variable=selected_var, value=port,
+                       font=("Arial", 11)).pack(anchor="w", padx=80)
 
     def confirm():
         dialog.destroy()
 
     Button(dialog, text="Launch App", command=confirm, bg="#5cb85c", fg="white").pack(pady=20)
 
-    # wait until selected
     window.wait_window(dialog)
     return selected_var.get()
 
