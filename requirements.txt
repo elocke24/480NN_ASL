@@ -4,4 +4,3 @@ numpy
 Pillow
 torch
 python-dotenv
-tkinter
