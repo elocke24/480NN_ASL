@@ -50,8 +50,9 @@ Run ``train_asl_model.py`` (this will take a long time)
 This will create / override ``asl_mlp_model.pt``
 
 # Running the Application
-ensure a working camera is connected before running the program
+Ensure a working camera is connected before running the program
 Run ``python emain.py``
+*Windows users may experience an error relating to mediapipe. Recommended solution is to use python version 3.9 or 3.10*
 
 
 Limitations
