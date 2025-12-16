@@ -10,37 +10,48 @@ Project Overview
 
 This project implements a Multilayer Perceptron (MLP) to recognize and teach American Sign Language (ASL) alphabet characters using a camera-based application. The system captures images of hand signs, extracts hand landmark features using MediaPipe, and feeds those features into a trained MLP model to predict the corresponding ASL letter. Letters J and Z are excluded, as they require motion-based gestures. The application is intended as an educational tool to assist with learning and translating ASL characters in real time.
 
-
 Technologies Used
 
-Python
+Python 3.10
 OpenCV (image capture and processing)
 MediaPipe (hand landmark detection)
 NumPy
 Pillow (GUI image handling)
 PyTorch (MLP model)
 python-dotenv (.env configuration)
-Tkinter (GUI)
+
+# Setup Instructions
+Ensure Python 3.10 is installed (mediapipe will not work with a newer version)
+cd into your desired folder to install the project, then run the following commands:
+``git clone https://github.com/elocke24/480NN_ASL.git
+cd 480NN_ASL``
+
+after this, set up a virtual enviornment (depends on your opperating system)
+Windows:
+``py -3.10 -m venv venv
+venv\Scripts\activate``
+If re-running, ``venv\Scripts\activate.bat``
+
+Mac/Linux
+``python3.10 -m venv venv
+source venv/bin/activate``
+
+Ensure the virtual enviornment is activated and install dependancies
+``pip install -r requirements.txt``
 
 
-Setup Instructions
+If you want to train / test the model (Optional)
+Log into your emich account and download the .env file and data.zip folder from this link:
+https://drive.google.com/drive/folders/1Up0EY59YKFChX36pa14S3Bq9iNLENNdc?usp=sharing
 
-After cloning the repository, install dependencies using pip install -r requirements.txt and set up the provided .env file which specifies the paths to the training and test data files, for example:
-TRAINING_PATH=/path/to/training_data.csv
-TEST_PATH=/path/to/test_data.csv
+Unzip data.zip and place the unzipped data folder and .env file into the 480NN_ASL folder
+**Ensure the downloaded env file is .env not env, it likes to be changed when downloaded**
+Run ``train_asl_model.py`` (this will take a long time)
+This will create / override ``asl_mlp_model.pt``
 
-
-Running the Application
-
-Run python main.py and ensure a working camera is connected before running the program.
-
-
-Model Training (Optional)
-
-If retraining the model:
-1. Run the dataset preprocessing script.
-2. Train the MLP using the provided training script.
-3. Save the trained model to be loaded by the application.
+# Running the Application
+ensure a working camera is connected before running the program
+Run ``python emain.py``
 
 
 Limitations
