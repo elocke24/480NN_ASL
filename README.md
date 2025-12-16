@@ -23,18 +23,18 @@ python-dotenv (.env configuration)
 # Setup Instructions
 Ensure Python 3.10 is installed (mediapipe will not work with a newer version)
 cd into your desired folder to install the project, then run the following commands:
-``git clone https://github.com/elocke24/480NN_ASL.git
-cd 480NN_ASL``
+``git clone https://github.com/elocke24/480NN_ASL.git``
+``cd 480NN_ASL``
 
 after this, set up a virtual enviornment (depends on your opperating system)
 Windows:
-``py -3.10 -m venv venv
-venv\Scripts\activate``
+``py -3.10 -m venv venv``
+``venv\Scripts\activate``
 If re-running, ``venv\Scripts\activate.bat``
 
 Mac/Linux
-``python3.10 -m venv venv
-source venv/bin/activate``
+``python3.10 -m venv venv``
+``source venv/bin/activate``
 
 Ensure the virtual enviornment is activated and install dependancies
 ``pip install -r requirements.txt``
