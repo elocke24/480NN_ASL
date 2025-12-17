@@ -49,11 +49,15 @@ Unzip data.zip and place the unzipped data folder and .env file into the 480NN_A
 Run ``train_asl_model.py`` (this will take a long time)
 This will create / override ``asl_mlp_model.pt``
 
-# Running the Application
+## Running the Application
 Ensure a working camera is connected before running the program
 Run ``python emain.py``
 *Windows users may experience an error relating to mediapipe. Recommended solution is to use python version 3.9 or 3.10*
 
+# Errors?
+If on windows, you might see ``AttributeError: module 'mediapipe' has no attribute 'solutions'`` if you try to run the script. To fix this, run these commands. This will force mediapipe to a specific version that worked on our testing devices.
+``pip uninstall -y mediapipe``
+``pip install --no-cache-dir mediapipe==0.10.21``
 
 Limitations
 
