@@ -1,3 +1,4 @@
+import mediapipe as mp
 import tkinter as tk
 from pdb import Restart
 from tkinter import Label, Button
@@ -5,7 +6,6 @@ import cv2
 from PIL import Image, ImageTk
 import torch
 import numpy as np
-import mediapipe as mp
 import os
 from dotenv import load_dotenv
 import glob
